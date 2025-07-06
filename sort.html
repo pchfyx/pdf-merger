@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sort PDFs</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .file-list li {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .merge-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 5px 10px;
+            font-size: 14px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sort PDFs</h1>
+    <ul class="file-list" id="fileList"></ul>
+    <button class="merge-button" id="mergeButton">Merge PDF</button>
+
+    <script>
+        const fileList = document.getElementById('fileList');
+        const mergeButton = document.getElementById('mergeButton');
+        const files = new URLSearchParams(window.location.search).get('files').split(',');
+
+        function createFileList() {
+            fileList.innerHTML = '';
+            files.forEach((file, index) => {
+                const listItem = document.createElement('li');
+                listItem.dataset.index = index;
+
+                const fileNameSpan = document.createElement('span');
+                fileNameSpan.textContent = file.split('_')[1]; // Display original file name
+                listItem.appendChild(fileNameSpan);
+
+                const moveUpButton = document.createElement('button');
+                moveUpButton.textContent = 'Move Up';
+                moveUpButton.className = 'btn';
+                moveUpButton.onclick = () => moveFile(index, -1);
+                listItem.appendChild(moveUpButton);
+
+                const moveDownButton = document.createElement('button');
+                moveDownButton.textContent = 'Move Down';
+                moveDownButton.className = 'btn';
+                moveDownButton.onclick = () => moveFile(index, 1);
+                listItem.appendChild(moveDownButton);
+
+                fileList.appendChild(listItem);
+            });
+        }
+
+        function moveFile(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex >= 0 && newIndex < files.length) {
+                const temp = files[index];
+                files[index] = files[newIndex];
+                files[newIndex] = temp;
+                createFileList();
+            }
+        }
+
+        mergeButton.addEventListener('click', async () => {
+            if (files.length < 2) {
+                alert('Please upload at least two PDF files to merge.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/merge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'merged.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('An error occurred while merging the PDFs.');
+                console.error('Error:', error);
+            }
+        });
+
+        createFileList();
+    </script>
+</body>
+</html>

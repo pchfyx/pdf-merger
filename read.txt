@@ -1,0 +1,6 @@
+instruction to use the app.py
+
+1. open terminal on "pdf merger made easy new" directory
+2. on terminal type "python app.py"
+3. open http://127.0.0.1:5000 on browser
+4. thank you for using pdf made easy!

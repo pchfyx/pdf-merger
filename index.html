@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple PDF Merger</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin: 20px;
+            cursor: pointer;
+        }
+        .file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .file-list li {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-list button {
+            background: #e74c3c;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .merge-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple PDF Merger</h1>
+    <div class="upload-area" id="uploadArea">
+        Drag and drop your PDF files here or click to upload
+    </div>
+    <ul class="file-list" id="fileList"></ul>
+    <button class="merge-button" id="proceedButton">Proceed to Sort</button>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileList = document.getElementById('fileList');
+        const proceedButton = document.getElementById('proceedButton');
+        let files = [];
+
+        uploadArea.addEventListener('click', () => {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'application/pdf';
+            fileInput.multiple = true;
+            fileInput.click();
+            fileInput.onchange = () => {
+                handleFiles(fileInput.files);
+            };
+        });
+
+        uploadArea.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            uploadArea.style.borderColor = '#000';
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#ccc';
+        });
+
+        uploadArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            uploadArea.style.borderColor = '#ccc';
+            handleFiles(event.dataTransfer.files);
+        });
+
+        function handleFiles(selectedFiles) {
+            for (let i = 0; i < selectedFiles.length; i++) {
+                if (selectedFiles[i].type === 'application/pdf') {
+                    if (!files.some(file => file.name === selectedFiles[i].name)) {
+                        files.push(selectedFiles[i]);
+                        const listItem = document.createElement('li');
+                        listItem.innerHTML = `
+                            ${selectedFiles[i].name}
+                            <button onclick="removeFile('${selectedFiles[i].name}')">Remove</button>
+                        `;
+                        fileList.appendChild(listItem);
+                    }
+                }
+            }
+        }
+
+        function removeFile(fileName) {
+            files = files.filter(file => file.name !== fileName);
+            const listItem = [...fileList.children].find(li => li.textContent.includes(fileName));
+            if (listItem) {
+                fileList.removeChild(listItem);
+            }
+        }
+
+        proceedButton.addEventListener('click', async () => {
+            if (files.length < 2) {
+                alert('Please upload at least two PDF files to merge.');
+                return;
+            }
+
+            const formData = new FormData();
+            files.forEach((file) => {
+                formData.append('files', file, file.name);
+            });
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('An error occurred while uploading the PDFs.');
+                }
+
+                const data = await response.json();
+                window.location.href = `/sort?files=${data.filepaths.join(',')}`;
+            } catch (error) {
+                alert('An error occurred while uploading the PDFs.');
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
